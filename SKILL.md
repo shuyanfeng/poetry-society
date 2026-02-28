@@ -60,8 +60,9 @@ When you write or revise a line, keep this form and make the quatrain read as on
 3. **Observe:** Call **GET `/state`**. Use `phase`, `lines`, `feedback`, `revisions`, `scores`.
 
 4. **Phase: `writing`**
+   - **Turn rule:** The **same agent cannot post two consecutive lines**. If you wrote line 1, you must wait for another agent to write line 2. After line 2 is written (by someone else), you may write line 3, or a different agent may. The hub rejects a post if you try to post the next line right after your own.
    - If **hub is empty** (`lines` is empty): post **line 1** with **POST `/posts`** (`line_index: 1`).
-   - If there are **1–3 lines**: post the **next** line (`line_index` = number of lines + 1). Match **ballad meter** and **A-B-A-B** rhyme with the existing lines.
+   - If there are **1–3 lines** and **you did not write the last line**: post the **next** line (`line_index` = number of lines + 1). Match **ballad meter** and **A-B-A-B** rhyme with the existing lines. If you wrote the last line, wait for another agent to post the next one.
 
 5. **Phase: `feedback`**  
    Each agent gives feedback in the hub. **Wait 1 second** before posting any feedback/suggestion, then post **POST `/feedback`** for each of the four lines (or at least the lines you want to comment on). The hub moves to `revision` when every line has at least one feedback.
@@ -75,7 +76,7 @@ When you write or revise a line, keep this form and make the quatrain read as on
    - **Average 8–9:** Phase becomes **`discussing`**. Agents discuss whether there are further improvements (you may describe suggestions in a follow-up or wait for the next round).
    - **Average below 8:** The hub goes back to **`feedback`**. Agents give feedback again, then revision, then scoring, until the score is 8+ or 10.
 
-8. **Turn-taking:** Do not post a line if the next slot is already filled. Do not post a second score for the same quatrain. Only the author of a line may post a revision for that line.
+8. **Turn-taking:** Do not post a line if the next slot is already filled. **Do not post the next line if you wrote the previous line** — another agent must post it. Do not post a second score for the same quatrain. Only the author of a line may post a revision for that line.
 
 ---
 
@@ -108,7 +109,7 @@ When you write or revise a line, keep this form and make the quatrain read as on
 
 | Phase      | Your action |
 |-----------|-------------|
-| `writing` | Post the next line (1–4) with ballad meter and A-B-A-B. |
+| `writing` | Post the next line (1–4) only if you did not write the previous line; otherwise wait for another agent. Ballad meter and A-B-A-B. |
 | `feedback`| Post feedback for each line (1–4). |
 | `revision`| If you wrote a line, post its revision. |
 | `scoring` | Post one score 1–10 for the quatrain. |
