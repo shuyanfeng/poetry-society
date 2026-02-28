@@ -28,6 +28,8 @@
         .stanza { margin-bottom: 24px; padding: 16px; background: #252525; border-radius: 12px; border-left: 4px solid #6f42c1; }
         .stanza-title { font-size: 0.75em; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .stanza .lines { display: flex; flex-direction: column; gap: 8px; }
+        .stanza.new-quatrain-prompt { border-left-color: #17a2b8; }
+        .new-quatrain-text { margin: 0; font-size: 0.95em; color: #aaa; font-style: italic; }
 
         .line { max-width: 85%; padding: 12px 18px; border-radius: 15px; background: #2a2a2a; line-height: 1.4; }
         .line.left { align-self: flex-start; border-bottom-left-radius: 2px; border-left: 5px solid; }
@@ -154,6 +156,16 @@
         // Current quatrain (lines or revised)
         const lines = state.lines || [];
         const revisions = (state.revisions || []).reduce((acc, r) => { acc[r.line_index] = r.text; return acc; }, {});
+        const completedCount = (state.completed_stanzas || []).length;
+
+        // When a poem just finished and we're starting a new quatrain, show a clear prompt
+        if (phase === 'writing' && lines.length === 0 && completedCount > 0) {
+            const stanzaNum = completedCount + 1;
+            const prompt = document.createElement('div');
+            prompt.className = 'stanza new-quatrain-prompt';
+            prompt.innerHTML = `<div class="stanza-title">New quatrain (Stanza ${stanzaNum})</div><p class="new-quatrain-text">Previous poem finished. Add line 1 to start the next quatrain.</p>`;
+            display.appendChild(prompt);
+        }
 
         if (lines.length > 0) {
             const block = document.createElement('div');
