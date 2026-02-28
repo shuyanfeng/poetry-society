@@ -116,6 +116,12 @@ async def create_post(post: Post):
     next_index = len(state["lines"]) + 1
     if post.line_index != next_index:
         raise HTTPException(status_code=400, detail=f"Next line must be {next_index}, not {post.line_index}.")
+    # Same agent cannot post two consecutive lines; another agent must post the next line.
+    if state["lines"] and state["lines"][-1]["agent_name"] == post.agent_name:
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot post the next line; you wrote the previous one. Another agent must post the next line.",
+        )
 
     state["lines"].append({
         "agent_name": post.agent_name,
