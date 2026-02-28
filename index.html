@@ -37,12 +37,21 @@
         .name { font-size: 0.7em; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.5px; }
         .text { font-size: 1.1em; font-style: italic; color: #fff; }
 
-        .feedback-section, .scores-section { margin-top: 16px; padding: 12px; background: #252525; border-radius: 8px; font-size: 0.9em; }
-        .feedback-section h4, .scores-section h4 { margin: 0 0 8px 0; font-size: 0.85em; color: #aaa; text-transform: uppercase; }
-        .feedback-item { margin-bottom: 6px; padding: 6px 10px; background: #1e1e1e; border-radius: 6px; }
+        .quatrain-box { margin-top: 16px; margin-bottom: 16px; padding: 20px; background: #1a2525; border-radius: 12px; border: 2px solid #2a6f6f; }
+        .quatrain-box .quatrain-box-title { font-size: 0.85em; color: #5eb8b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .quatrain-box .lines { display: flex; flex-direction: column; gap: 8px; }
+
+        .discussion-section { margin-top: 16px; padding: 16px; background: #252520; border-radius: 12px; border-left: 4px solid #fd7e14; }
+        .discussion-section h4 { margin: 0 0 10px 0; font-size: 0.85em; color: #e0a040; text-transform: uppercase; letter-spacing: 0.5px; }
+        .discussion-section .discussion-subtitle { font-size: 0.8em; color: #888; margin-bottom: 10px; }
+        .feedback-item { margin-bottom: 8px; padding: 8px 12px; background: #1e1e1e; border-radius: 6px; }
         .feedback-item .by { color: #888; font-size: 0.8em; }
+
+        .vote-results-section { margin-top: 16px; padding: 16px; background: #202525; border-radius: 12px; border-left: 4px solid #20c997; }
+        .vote-results-section h4 { margin: 0 0 8px 0; font-size: 0.85em; color: #20c997; text-transform: uppercase; letter-spacing: 0.5px; }
+        .vote-results-section .vote-subtitle { font-size: 0.8em; color: #888; margin-bottom: 10px; }
         .scores-list { display: flex; flex-wrap: wrap; gap: 8px; }
-        .score-chip { padding: 4px 10px; background: #2a2a2a; border-radius: 6px; font-size: 0.85em; }
+        .score-chip { padding: 6px 12px; background: #2a2a2a; border-radius: 6px; font-size: 0.85em; }
 
         #status-bar { margin-top: 15px; font-size: 0.75em; color: #555; display: flex; gap: 15px; flex-wrap: wrap; }
 
@@ -167,7 +176,7 @@
             display.appendChild(prompt);
         }
 
-        if (lines.length > 0) {
+        if (lines.length > 0 && lines.length < 4) {
             const block = document.createElement('div');
             block.className = 'stanza';
             const stanzaNum = (state.completed_stanzas || []).length + 1;
@@ -187,24 +196,49 @@
             display.appendChild(block);
         }
 
-        // Feedback section
+        // When all 4 lines are written: put them in a separate "Current poem" box, then discussion, then vote results
+        if (lines.length === 4) {
+            const quatrainBox = document.createElement('div');
+            quatrainBox.className = 'quatrain-box';
+            const stanzaNum = (state.completed_stanzas || []).length + 1;
+            quatrainBox.innerHTML = `<div class="quatrain-box-title">Current poem (Stanza ${stanzaNum})</div><div class="lines"></div>`;
+            const qLinesEl = quatrainBox.querySelector('.lines');
+            lines.forEach((line, j) => {
+                const text = revisions[line.line_index] != null ? revisions[line.line_index] : line.text;
+                const div = document.createElement('div');
+                const isLeft = j % 2 === 0;
+                div.className = `line ${isLeft ? 'left' : 'right'}`;
+                const color = stringToColor(line.agent_name);
+                div.style.borderLeftColor = isLeft ? color : 'transparent';
+                div.style.borderRightColor = isLeft ? 'transparent' : color;
+                div.innerHTML = `<div class="name" style="color: ${color}">${escapeHtml(line.agent_name)}</div><div class="text">${escapeHtml(text)}</div>`;
+                qLinesEl.appendChild(div);
+            });
+            display.appendChild(quatrainBox);
+        }
+
+        // Discussion: agent opinions and feedback (shown after the 4-line poem)
         const feedback = state.feedback || [];
-        if (feedback.length > 0) {
+        if (feedback.length > 0 || phase === 'feedback' || phase === 'revision' || phase === 'discussing') {
             const sec = document.createElement('div');
-            sec.className = 'feedback-section';
-            sec.innerHTML = '<h4>Feedback</h4>' + feedback.map(f =>
-                `<div class="feedback-item"><span class="by">${escapeHtml(f.agent_name)} on line ${f.line_index}:</span> ${escapeHtml(f.text)}</div>`
-            ).join('');
+            sec.className = 'discussion-section';
+            sec.innerHTML = '<h4>Discussion</h4><p class="discussion-subtitle">Agent opinions and feedback posted in the hub.</p><div id="discussion-list"></div>';
+            const list = sec.querySelector('#discussion-list');
+            if (feedback.length > 0) {
+                list.innerHTML = feedback.map(f =>
+                    `<div class="feedback-item"><span class="by">${escapeHtml(f.agent_name)} on line ${f.line_index}:</span> ${escapeHtml(f.text)}</div>`
+                ).join('');
+            }
             display.appendChild(sec);
         }
 
-        // Scores section
+        // Vote results: agents' scores reflected in the hub
         const scores = state.scores || [];
-        if (scores.length > 0) {
+        if (scores.length > 0 || phase === 'scoring') {
             const sec = document.createElement('div');
-            sec.className = 'scores-section';
+            sec.className = 'vote-results-section';
             const avg = scores.length ? (scores.reduce((a, s) => a + s.score, 0) / scores.length).toFixed(1) : '-';
-            sec.innerHTML = `<h4>Scores (avg: ${avg})</h4><div class="scores-list"></div>`;
+            sec.innerHTML = `<h4>Vote results</h4><p class="vote-subtitle">Agent scores reflected in the hub.${scores.length ? ' Average: ' + avg + '/10.' : ''}</p><div class="scores-list"></div>`;
             const list = sec.querySelector('.scores-list');
             scores.forEach(s => { list.innerHTML += `<span class="score-chip">${escapeHtml(s.agent_name)}: ${s.score}</span>`; });
             display.appendChild(sec);
